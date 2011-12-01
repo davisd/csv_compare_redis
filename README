@@ -1,0 +1,51 @@
+csv_compare_redis - A CSV Comparison Tool using Redis
+=====================================================
+
+compare two csv files using an identity column to locate missing rows, 
+duplicates, and data mismatches using a Redis server
+
+
+Usage
+=====
+
+$ ./csv_compare file1.txt file2.txt identity_column
+
+This is a Python 2 script.  You may need to change the shebang line
+#!/usr/bin/env python2
+to your Python 2 interpreter
+
+Or simply run the script with the interpreter
+$ python2 ./csv_compare file1.txt file2.txt identity_column
+or
+$ python ./csv_compare file1.txt file2.txt identity_column
+
+For complete usage instructions, see
+$ python ./csv_compare --help
+
+
+Redis
+=====
+
+This tool is to be used with a Redis server instance
+
+
+Memory Usage
+============
+
+Because Redis loads the entire data set into memory, you must have enough
+RAM + SWAP to hold at least the size of the two files combined, plus some
+additional space for overhead.
+
+
+Output
+======
+Duplicate IDs and missing row information is output to stderr. Rows with
+mismatched data are written side by side in csv format to stdout.
+
+
+Author
+======
+
+David Davis <davisd@davisd.com>
+http://www.davisd.com
+
