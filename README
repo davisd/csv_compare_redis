@@ -26,7 +26,15 @@ $ python ./csv_compare --help
 Redis
 =====
 
-This tool is to be used with a Redis server instance
+This tool is to be used with a Redis server instance.
+
+The python libraries used are:
+
+redis-py https://github.com/andymccurdy/redis-py
+and
+hiredis-py - https://github.com/pietern/hiredis-py
+
+Using hiredis apparently speeds queries up to 10x from the redis-py default.
 
 
 Memory Usage
@@ -35,6 +43,9 @@ Memory Usage
 Because Redis loads the entire data set into memory, you must have enough
 RAM + SWAP to hold at least the size of the two files combined, plus some
 additional space for overhead.
+
+To disable Redis persistence (disk saves), start Redis with all of the
+"save" lines commented out in the Redis configuration file.
 
 
 Output
