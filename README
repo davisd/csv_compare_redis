@@ -40,18 +40,26 @@ Using hiredis apparently speeds queries up to 10x from the redis-py default.
 Memory Usage
 ============
 
-Because Redis loads the entire data set into memory, you must have enough
-RAM + SWAP to hold at least the size of the two files combined, plus some
-additional space for overhead.
+csv_compare makes some memory optimizations so that usually, it does not
+require that you have enough RAM to load both files (or even one file) into
+memory at once.
 
 To disable Redis persistence (disk saves), start Redis with all of the
 "save" lines commented out in the Redis configuration file.
 
+Redis loads all of the data it uses into memory, so if you are running out of
+RAM and SWAP space, create an additional swapfile.  For example, to initialize
+an extra 10GB of swap space:
+
+# dd if=/dev/zero bs=1M count=10240 of=./extraswap_file
+# mkswap ./extraswap_file
+# swapon ./extraswap_file
+
 
 Output
 ======
-Duplicate IDs and missing row information is output to stderr. Rows with
-mismatched data are written side by side in csv format to stdout.
+Messages and duplicate IDs is output to stderr.
+Rows with mismatched data are written side by side in csv format to stdout.
 
 
 Author
