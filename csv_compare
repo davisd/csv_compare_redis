@@ -20,7 +20,7 @@ class RetainValueIterator(object):
         return self.val
 
 def compare(file1, file2, id_column, redis,
-        ignore_columns=[], add=True, scan=True):
+        ignore_columns=[], add=True, flushdb=True, scan=True):
     """
     Compare two csv files using Redis
 
@@ -32,6 +32,7 @@ def compare(file1, file2, id_column, redis,
 
     ignore_columns - columns to ignore
     add - add data indicator
+    flushdb - flush the DB before adding indicator
     scan - scan data indicator
     """
     # get a couple of csv readers from the files
@@ -61,6 +62,10 @@ def compare(file1, file2, id_column, redis,
     hashable_indexes=[a for a in range(len(header1)) if a not in ignore_indexes]
 
     if add:
+        if flushdb==True:
+            stderr.write('Flushing the Redis DB\n')
+            redis.flushdb()
+
         # read the data into redis
         stderr.write('Entering data into Redis\n')
 
@@ -131,10 +136,11 @@ def compare(file1, file2, id_column, redis,
         first_iteration=True
         for r in redis.sinter(file1, file2):
             csv1=redis.get('%s:%s' % (file1,r,))
-            # if csv1 exists, it was not removed by our memory optimization
+            # if csv1 exists, it was not removed by memory optimization
             if csv1:
                 csv2=redis.get('%s:%s' % (file2,r,))
                 if csv2:
+                    # if csv1 exists, it was not removed by memory optimization
                     if first_iteration:
                         first_iteration=False
                         sys.stderr.write(
@@ -162,6 +168,9 @@ def main(argv=None):
 
     parser.add_argument('--noadd', help='Do not add entries into Redis',
        action='store_true', default=False)
+    parser.add_argument('--noflush',
+        help='Do not flush the db before adding entries into Redis',
+       action='store_true', default=False)
     parser.add_argument('--noscan', help='Do not scan',
        action='store_true', default=False)
 
@@ -173,12 +182,14 @@ def main(argv=None):
     ignore=args.ignore
 
     noadd=args.noadd
+    noflush=args.noflush
     noscan=args.noscan
 
     # open a redis connection
     r=redis.Redis()
 
-    compare(file1, file2, identity_col, r, ignore_columns=ignore, add=not noadd, scan=not noscan)
+    compare(file1, file2, identity_col, r, ignore_columns=ignore, add=not noadd,
+        flushdb=not noflush, scan=not noscan)
 
 if __name__ == "__main__":
         sys.exit(main())
