@@ -20,7 +20,8 @@ class RetainValueIterator(object):
         return self.val
 
 def compare(file1, file2, id_column, redis,
-        ignore_columns=[], add=True, flushdb=True, scan=True):
+        ignore_columns=[], add=True, flushdb=True, postflushdb=True,
+        scan=True):
     """
     Compare two csv files using Redis
 
@@ -33,6 +34,7 @@ def compare(file1, file2, id_column, redis,
     ignore_columns - columns to ignore
     add - add data indicator
     flushdb - flush the DB before adding indicator
+    postflushdb - flush the DB after scanning indicator
     scan - scan data indicator
     """
     # get a couple of csv readers from the files
@@ -152,6 +154,10 @@ def compare(file1, file2, id_column, redis,
                     stdout.write('%s,%s,%s' % \
                         (file2, str(int(csv2[:10])), csv2[11:]))
 
+        # flush the db
+        if postflushdb:
+            redis.flushdb()
+
 def main(argv=None):
     if argv is None:
         argv = sys.argv
@@ -171,6 +177,9 @@ def main(argv=None):
     parser.add_argument('--noflush',
         help='Do not flush the db before adding entries into Redis',
        action='store_true', default=False)
+    parser.add_argument('--nopostflush',
+        help='Do not flush the db after scanning',
+       action='store_true', default=False)
     parser.add_argument('--noscan', help='Do not scan',
        action='store_true', default=False)
 
@@ -183,13 +192,14 @@ def main(argv=None):
 
     noadd=args.noadd
     noflush=args.noflush
+    nopostflush=args.nopostflush
     noscan=args.noscan
 
     # open a redis connection
     r=redis.Redis()
 
     compare(file1, file2, identity_col, r, ignore_columns=ignore, add=not noadd,
-        flushdb=not noflush, scan=not noscan)
+        flushdb=not noflush, postflushdb=not nopostflush, scan=not noscan)
 
 if __name__ == "__main__":
         sys.exit(main())
