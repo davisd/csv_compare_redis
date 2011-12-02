@@ -19,7 +19,8 @@ class RetainValueIterator(object):
         self.val=self.f.next()
         return self.val
 
-def compare(file1, file2, id_column, redis, ignore_columns=[], add=True, scan=True):
+def compare(file1, file2, id_column, redis,
+        ignore_columns=[], add=True, scan=True):
     """
     Compare two csv files using Redis
 
@@ -29,7 +30,7 @@ def compare(file1, file2, id_column, redis, ignore_columns=[], add=True, scan=Tr
 
     redis - Redis connection
 
-    ignore_columns - Columns to ignore
+    ignore_columns - columns to ignore
     add - add data indicator
     scan - scan data indicator
     """
@@ -53,7 +54,8 @@ def compare(file1, file2, id_column, redis, ignore_columns=[], add=True, scan=Tr
     try:
         ignore_indexes=[header1.index(a) for a in ignore_columns]
     except ValueError:
-        raise Exception('One or more of the specified ignore columns does not exist')
+        raise Exception('One or more of the specified ignore columns does ' \
+            'not exist')
 
     id_column_index=header1.index(id_column)
     hashable_indexes=[a for a in range(len(header1)) if a not in ignore_indexes]
@@ -62,11 +64,13 @@ def compare(file1, file2, id_column, redis, ignore_columns=[], add=True, scan=Tr
         # read the data into redis
         stderr.write('Entering data into Redis\n')
 
-        # (csv_reader, retain_iterator, line_number, completion_status)
+        # [filename, csv_reader, retain_iterator, line_number,
+        #     completion_status, other_item]
         d1=[file1, csv1, r1, 1, False, None]
         d2=[file2, csv2, r2, 1, False, d1]
         d1[5]=d2
         d=d1
+        # While both items have yet to complete
         while not d[4] or not d[5][4]:
             try:
                 # next row
@@ -76,31 +80,31 @@ def compare(file1, file2, id_column, redis, ignore_columns=[], add=True, scan=Tr
                 # row count
                 d[3]+=1
                 if len(row):
-                    # the key is the file name
+                    # key=filename, val=unique_id
                     key=d[0]
                     val=row[id_column_index]
-                    hashed_key='%s:hashed' % (d[0],)
-                    # set the value based on the column index and hashed value
-                    hashed_val='%s:%025d' % (row[id_column_index],hash(','.join([row[x] for x in hashable_indexes])))
-                    # add the key/value to the set
                     redis.sadd(key, val)
-                    # add the hashed key/value to the set
+
+                    # key=filename:hashed, val=unique_id:hashed_value
+                    hashed_key='%s:hashed' % (d[0],)
+                    hashed_val='%s:%025d' % (row[id_column_index],hash(
+                        ','.join([row[x] for x in hashable_indexes])))
                     redis.sadd(hashed_key, hashed_val)
 
-                    # if the other set has this hashed key/val pair...
+                    # memory optimization...
+                    # if the other set has this hashed key/val pair
                     if redis.sismember('%s:hashed' % (d[5][0],), hashed_val):
-                        # clear the other data
+                        # clear the other key
                         redis.delete('%s:%s' % (d[5][0], row[id_column_index]))
+                        # do not add this key/value to the list
                     else:
                         key='%s:%s' % (d[0], row[id_column_index],)
                         val='%010d,%s' % (d[3], csv_text)
                         redis.set(key, val)
 
-
                 # file switching every 100,000 rows
                 if d[3] % 100000 == 0 and not d[5][4]:
                     d=d[5]
-                    continue
 
             except StopIteration:
                 d[4]=True
@@ -133,10 +137,14 @@ def compare(file1, file2, id_column, redis, ignore_columns=[], add=True, scan=Tr
                 if csv2:
                     if first_iteration:
                         first_iteration=False
-                        sys.stderr.write('Writing mismatched results to stdout\n')
-                        sys.stdout.write('file,line,%s\n' % (','.join(header1)),)
-                    stdout.write('%s,%s,%s' % (file1, str(int(csv1[:10])), csv1[11:]))
-                    stdout.write('%s,%s,%s' % (file2, str(int(csv2[:10])), csv2[11:]))
+                        sys.stderr.write(
+                            'Writing mismatched results to stdout\n')
+                        sys.stdout.write(
+                            'file,line,%s\n' % (','.join(header1)),)
+                    stdout.write('%s,%s,%s' % \
+                        (file1, str(int(csv1[:10])), csv1[11:]))
+                    stdout.write('%s,%s,%s' % \
+                        (file2, str(int(csv2[:10])), csv2[11:]))
 
 def main(argv=None):
     if argv is None:
