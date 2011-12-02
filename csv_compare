@@ -16,8 +16,7 @@ class RetainValueIterator(object):
         return self
 
     def next(self):
-        self.val=self.f.readline()
-        if not self.val: raise StopIteration()
+        self.val=self.f.next()
         return self.val
 
 def compare(file1, file2, id_column, redis, ignore_columns=[], add=True, scan=True):
